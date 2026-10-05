@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Maya — AI Teacher</title>
+<style>
+  :root { --navy:#1f2a5a; --warm:#fff8f0; --accent:#e07856; --sand:#f3ecdf; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Georgia,'Times New Roman',serif; background:var(--warm); color:#2b2b2b; }
+  header { background:var(--navy); color:#fff; padding:14px 22px; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { margin:0; font-size:20px; font-weight:normal; letter-spacing:.5px; }
+  header p { margin:4px 0 0; font-size:13px; opacity:.8; }
+  header button { background:transparent; border:1px solid #fff; color:#fff; border-radius:999px;
+    padding:8px 18px; font-size:13px; cursor:pointer; font-family:inherit; }
+  main { max-width:1200px; margin:0 auto; padding:18px; }
+  .card { background:#fff; border-radius:14px; box-shadow:0 4px 18px rgba(31,42,90,.08); overflow:hidden; margin-bottom:18px; }
+  .card h2 { margin:0; padding:12px 16px; background:var(--sand); font-size:16px; font-weight:normal; }
+  .pad { padding:16px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field label { font-size:13px; color:#666; }
+  .field select { font-family:inherit; font-size:15px; padding:9px 12px; border-radius:10px; border:1px solid #d8cfc0; background:#fff; min-width:180px; }
+  .lessons { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+  .lesson { border:1px solid #e7ddcc; border-radius:12px; padding:14px; background:#fffdf8; }
+  .lesson h3 { margin:0 0 6px; font-size:17px; font-weight:normal; }
+  .lesson .meta { font-size:13px; color:#777; margin-bottom:10px; }
+  .btn { background:var(--accent); color:#fff; border:0; border-radius:999px; padding:10px 22px;
+    font-size:15px; cursor:pointer; font-family:inherit; }
+  .btn:disabled { opacity:.5; cursor:wait; }
+  .btn.ghost { background:#fff; color:var(--navy); border:1px solid var(--navy); }
+  .grid2 { display:grid; grid-template-columns:1.1fr .9fr; gap:18px; }
+  #stage { aspect-ratio:4/3; background:#101226; display:flex; align-items:center; justify-content:center; color:#cfd3ff; }
+  #stage iframe { width:100%; height:100%; border:0; }
+  #stage .idle { text-align:center; padding:20px; font-size:14px; line-height:1.6; }
+  .controls { padding:14px 16px; display:flex; gap:10px; align-items:center; }
+  #status { font-size:13px; color:#666; }
+  .visual { padding:16px; position:relative; }
+  .visual img { width:100%; height:auto; display:block; border-radius:10px; }
+  .thinking { position:absolute; inset:16px; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,248,240,.88); font-size:17px; border-radius:10px; }
+  .caption { font-size:14px; line-height:1.7; padding:0 16px 12px; min-height:66px; }
+  .visual-tabs { display:flex; gap:8px; padding:0 16px 16px; flex-wrap:wrap; }
+  .vtab { background:var(--sand); color:var(--navy); border:0; border-radius:999px;
+    padding:8px 16px; font-size:13.5px; cursor:pointer; font-family:inherit; }
+  .vtab.active { background:var(--navy); color:#fff; }
+  .note { font-size:12.5px; color:#777; line-height:1.6; padding:0 18px 24px; max-width:1200px; margin:0 auto; }
+  .lessonmeta { font-size:13.5px; color:#666; padding:10px 16px 0; }
+  @media (max-width:800px){ .grid2{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Maya — AI Teacher</h1>
+    <p>Teacher Studio plans the lesson &middot; Maya teaches it live</p>
+  </div>
+  <button id="homeBtn" hidden>← Studio</button>
+</header>
+
+<!-- ============ TEACHER STUDIO ============ -->
+<main id="studioView">
+  <section class="card">
+    <h2>📋 Teacher Studio — plan the lesson</h2>
+    <div class="pad">
+      <div class="row">
+        <div class="field"><label>Curriculum</label>
+          <select id="curriculum">
+            <option>IB</option><option>CBSE</option><option>ICSE</option>
+            <option>Telangana State Board</option><option>Custom</option>
+          </select>
+        </div>
+        <div class="field"><label>Grade</label>
+          <select id="grade"><option>3</option><option>4</option><option selected>5</option><option>6</option></select>
+        </div>
+        <div class="field"><label>Subject</label>
+          <select id="subject"><option>Science</option><option>EVS</option><option>Mathematics</option><option>English</option></select>
+        </div>
+      </div>
+      <div class="lessons" id="lessonCards"><p style="color:#777">Loading lessons…</p></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ LEARNER VIEW ============ -->
+<main id="learnerView" hidden>
+  <p class="lessonmeta" id="lessonMeta"></p>
+  <div class="grid2">
+    <section class="card">
+      <h2>👩‍🏫 Maya, live</h2>
+      <div id="stage"><div class="idle">Press <b>Start lesson</b> and allow the microphone.<br/>Maya will greet the class and teach today's topic.</div></div>
+      <div class="controls">
+        <button class="btn" id="startBtn">Start lesson</button>
+        <span id="status"></span>
+      </div>
+    </section>
+    <section class="card">
+      <h2>🫀 Visual aids — Maya draws as she teaches</h2>
+      <div class="visual">
+        <img id="visualImg" src="" alt="Lesson visual aid" />
+        <div id="visualThinking" class="thinking" hidden>✏️ Maya is drawing…</div>
+      </div>
+      <p class="caption" id="visualCaption"></p>
+      <div class="visual-tabs" id="visualTabs"></div>
+    </section>
+  </div>
+</main>
+
+<p class="note">
+  Prototype: live sessions are stateless — Maya remembers nothing about the speaker.
+  She is an AI teacher; important facts should be checked with a real teacher.
+  Video streams over WebRTC via Tavus. Free-tier minutes apply.
+</p>
+
+<script>
+const studioView = document.getElementById('studioView');
+const learnerView = document.getElementById('learnerView');
+const homeBtn = document.getElementById('homeBtn');
+let LESSONS = [];
+let current = null; // {lesson, grade, curriculum, subject}
+
+function sel(id){ return document.getElementById(id).value; }
+
+async function loadLessons(){
+  const r = await fetch('/api/lessons');
+  const data = await r.json();
+  LESSONS = data.lessons || [];
+  renderCards();
+  // Deep link: ?lesson=heart&grade=5&curriculum=IB&subject=Science
+  const q = new URLSearchParams(location.search);
+  if (q.get('lesson')) {
+    const l = LESSONS.find(x => x.id === q.get('lesson'));
+    if (l) openLesson(l, q.get('grade')||'5', q.get('curriculum')||'IB', q.get('subject')||l.subject);
+  }
+}
+
+function renderCards(){
+  const wrap = document.getElementById('lessonCards');
+  wrap.innerHTML = '';
+  LESSONS.forEach(l => {
+    const d = document.createElement('div');
+    d.className = 'lesson';
+    d.innerHTML = `<h3>${l.topic}</h3><div class="meta">${l.subject} · Grades ${l.grades.join(', ')} · ${l.curricula.join(' / ')}</div>`;
+    const b = document.createElement('button');
+    b.className = 'btn'; b.textContent = 'Start live lesson →';
+    b.onclick = () => openLesson(l, sel('grade'), sel('curriculum'), sel('subject'));
+    d.appendChild(b);
+    wrap.appendChild(d);
+  });
+  if (!LESSONS.length) wrap.innerHTML = '<p style="color:#777">No lessons yet.</p>';
+}
+
+function openLesson(lesson, grade, curriculum, subject){
+  current = { lesson, grade, curriculum, subject };
+  studioView.hidden = true; learnerView.hidden = false; homeBtn.hidden = false;
+  document.getElementById('lessonMeta').textContent =
+    `${curriculum} · Grade ${grade} · ${subject} · ${lesson.topic}`;
+  // Visual aids
+  const tabs = document.getElementById('visualTabs');
+  const img = document.getElementById('visualImg');
+  const cap = document.getElementById('visualCaption');
+  tabs.innerHTML = '';
+  lesson.visuals.forEach((v, i) => {
+    const b = document.createElement('button');
+    b.className = 'vtab' + (i===0 ? ' active' : '');
+    b.textContent = v.label;
+    b.onclick = () => {
+      tabs.querySelectorAll('.vtab').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const th = document.getElementById('visualThinking');
+      th.hidden = false;
+      setTimeout(() => { img.src = v.file; cap.textContent = v.caption; th.hidden = true; }, 1200);
+    };
+    tabs.appendChild(b);
+  });
+  if (lesson.visuals[0]) { img.src = lesson.visuals[0].file; cap.textContent = lesson.visuals[0].caption; }
+  // Reset stage
+  document.getElementById('stage').innerHTML =
+    '<div class="idle">Press <b>Start lesson</b> and allow the microphone.<br/>Maya will greet the class and teach today\'s topic.</div>';
+  document.getElementById('status').textContent = '';
+  document.getElementById('startBtn').disabled = false;
+  window.scrollTo(0,0);
+}
+
+homeBtn.onclick = () => {
+  learnerView.hidden = true; studioView.hidden = false; homeBtn.hidden = true;
+};
+
+document.getElementById('startBtn').addEventListener('click', async (e) => {
+  const btn = e.target;
+  const stage = document.getElementById('stage');
+  const status = document.getElementById('status');
+  btn.disabled = true;
+  status.textContent = 'Starting Maya…';
+  try {
+    const r = await fetch('/api/conversation', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ lessonId: current.lesson.id, grade: current.grade,
+                             curriculum: current.curriculum, subject: current.subject })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+    if (!data.conversation_url) throw new Error('No conversation_url returned.');
+    const f = document.createElement('iframe');
+    f.src = data.conversation_url;
+    f.allow = 'camera; microphone; fullscreen; display-capture';
+    f.title = 'Maya live lesson';
+    stage.innerHTML = ''; stage.appendChild(f);
+    status.textContent = 'Maya is live — say namaste!';
+  } catch (err) {
+    status.textContent = 'Could not start: ' + err.message;
+    btn.disabled = false;
+  }
+});
+
+loadLessons();
+</script>
+</body>
+</html>

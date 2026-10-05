@@ -1,0 +1,17 @@
+# Render deploy config — free tier friendly.
+# 1. Push this folder to a GitHub repo (web upload works, no git CLI needed).
+# 2. Render dashboard → New → Web Service → connect the repo.
+# 3. Render reads this file automatically. Add the two env vars below manually.
+services:
+  - type: web
+    name: maya-ai-teacher
+    runtime: node
+    plan: free
+    buildCommand: echo "no build step"
+    startCommand: node server.js
+    envVars:
+      - key: TAVUS_API_KEY
+        sync: false
+      - key: TAVUS_PAL_ID
+        sync: false
+      # PORT is provided by Render automatically; the server respects it.
